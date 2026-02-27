@@ -2,61 +2,68 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>ระบบคัดกรองรอยโรค (รพ.ศรีสะเกษ - Drive & Local Process)</title>
+    <title>ระบบวิเคราะห์ระดับความรุนแรง DR (รพ.ศรีสะเกษ - Local Analysis)</title>
     <script async defer src="https://accounts.google.com/gsi/client" onload="onGsiLoad()"></script>
     <script async src="https://docs.opencv.org/4.5.4/opencv.js" type="text/javascript" onload="onOpenCvReady()"></script>
     
     <style>
-        :root { --primary: #0d9488; --drive: #1a73e8; --bg: #f1f5f9; }
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg); padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        .controls { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .patient-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; padding: 10px; }
-        .file-item { padding: 8px; cursor: pointer; border-radius: 4px; background: white; border: 1px solid #e2e8f0; font-size: 13px; }
-        .file-item:hover { background: #f0fdfa; }
-        .canvas-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
-        canvas, img { max-width: 100%; border-radius: 8px; background: #000; border: 2px solid #cbd5e1; }
-        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; }
-        .btn-drive { background: var(--drive); }
-        .btn-green { background: #059669; }
-        .btn-warn { background: #d97706; }
+        :root { --primary: #0d9488; --bg: #f8fafc; --white: #ffffff; }
+        body { font-family: 'Inter', 'Sarabun', sans-serif; background: var(--bg); color: #1e293b; padding: 20px; }
+        .app-card { max-width: 1100px; margin: 0 auto; background: var(--white); padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .dashboard { display: grid; grid-template-columns: 300px 1fr; gap: 20px; margin-top: 20px; }
+        .file-panel { background: #f1f5f9; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
+        .file-list { max-height: 400px; overflow-y: auto; margin-top: 10px; }
+        .file-item { padding: 8px; border-bottom: 1px solid #cbd5e1; cursor: pointer; font-size: 13px; }
+        .file-item:hover { background: #e2e8f0; }
+        
+        /* ผลการวิเคราะห์ */
+        .report-panel { border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #fff; }
+        .severity-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; margin-bottom: 15px; }
+        .stats-box { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-item { flex: 1; padding: 15px; border-radius: 8px; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; }
+        .stat-val { font-size: 24px; font-weight: bold; color: var(--primary); }
+        
+        canvas { max-width: 100%; border-radius: 8px; background: #000; border: 1px solid #ccc; }
+        .btn-drive { background: #1a73e8; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1 style="text-align:center; color:var(--primary);">🩺 ระบบวิเคราะห์ภาพจาก Drive (Offline Processing)</h1>
-    <p style="text-align:center;">หน่วยคัดกรอง <strong>รพ.ศรีสะเกษ</strong></p>
+<div class="app-card">
+    <h1 style="text-align:center; color:var(--primary);">🏥 ระบบวิเคราะห์ระดับความรุนแรงอัตโนมัติ (Non-AI)</h1>
+    <p style="text-align:center;">หน่วยงานคัดกรอง <strong>รพ.ศรีสะเกษ</strong></p>
 
-    <div class="controls">
-        <div style="margin-bottom:15px; text-align:center;">
-            <strong>📁 โฟลเดอร์เป้าหมาย:</strong> 
-            <code id="folder-display">1-WV_s3s7mLKDUfs7fl-UwH0H4TxxO1cx</code>
-        </div>
-        <div class="btn-group">
-            <button class="btn btn-drive" onclick="authenticate()">🔄 เชื่อมต่อ Drive และดึงรายชื่อภาพ</button>
-        </div>
-        <div id="file-list" class="patient-list">
-            <div style="color:#64748b; text-align:center; width:100%;">กดปุ่มด้านบนเพื่อโหลดรายชื่อภาพ...</div>
-        </div>
-    </div>
-
-    <div id="process-area" style="display:none;">
-        <div class="btn-group">
-            <button class="btn btn-green" onclick="applyFilter('redfree')">🟢 Red-Free Filter (ดูเลือดออก)</button>
-            <button class="btn btn-warn" onclick="applyFilter('exudate')">🟡 เน้นไขมันรั่ว (Exudates)</button>
-            <button class="btn" style="background:#64748b" onclick="resetView()">🔄 ภาพจริง</button>
+    <div class="dashboard">
+        <div class="file-panel">
+            <button class="btn-drive" onclick="authDrive()">🔄 เชื่อมต่อภาพจาก Drive</button>
+            <div id="file-count" style="font-size:12px; margin-top:10px; color:#64748b;"></div>
+            <div id="file-list" class="file-list"></div>
         </div>
 
-        <div class="canvas-area">
-            <div>
-                <p style="text-align:center;"><strong>ภาพต้นฉบับ</strong></p>
-                <img id="img-input" style="max-width:450px;">
-            </div>
-            <div>
-                <p style="text-align:center;"><strong>ผลการประมวลผล (Local)</strong></p>
-                <canvas id="canvas-output"></canvas>
+        <div id="main-view" style="display:none;">
+            <div class="report-panel">
+                <div id="grade-badge" class="severity-badge">Normal (ปกติ)</div>
+                <h3 id="patient-name" style="margin:0 0 15px 0;">ไฟล์: -</h3>
+
+                <div class="stats-box">
+                    <div class="stat-item">
+                        <div class="stat-val" id="h-count">0</div>
+                        <div style="font-size:12px;">จุดเลือดออก (HM)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-val" id="e-count">0</div>
+                        <div style="font-size:12px;">ไขมันรั่ว (EX)</div>
+                    </div>
+                </div>
+
+                <div style="background:#f0f9ff; padding:15px; border-radius:8px; border-left:4px solid #0369a1; font-size:14px;">
+                    <strong>📋 คำแนะนำ:</strong> <span id="plan-text">นัดตรวจซ้ำปีหน้าตามปกติครับ</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:20px;">
+                    <div><p style="font-size:12px; font-weight:bold;">ภาพประมวลผลรอยโรค (Filtered)</p><canvas id="canvas-filtered"></canvas></div>
+                    <div><p style="font-size:12px; font-weight:bold;">ภาพต้นฉบับ (Original)</p><canvas id="canvas-original"></canvas></div>
+                </div>
             </div>
         </div>
     </div>
@@ -66,78 +73,93 @@
     const CLIENT_ID = '446093303322-5sksg8sflshmq9df4d9f72nnt3v9gcv6.apps.googleusercontent.com';
     const FOLDER_ID = '1-WV_s3s7mLKDUfs7fl-UwH0H4TxxO1cx';
     let tokenClient, accessToken = null;
-    let currentImage = new Image();
+    let currentImg = new Image();
 
     function onGsiLoad() {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID, scope: 'https://www.googleapis.com/auth/drive.readonly',
-            callback: (res) => { accessToken = res.access_token; fetchDriveFiles(); }
+            callback: (res) => { accessToken = res.access_token; loadDriveList(); }
         });
     }
 
-    function authenticate() {
-        if (!accessToken) tokenClient.requestAccessToken();
-        else fetchDriveFiles();
+    function authDrive() { if (!accessToken) tokenClient.requestAccessToken(); else loadDriveList(); }
+
+    async function loadDriveList() {
+        const list = document.getElementById('file-list');
+        list.innerHTML = "กำลังดึงข้อมูล...";
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}' in parents and trashed=false&fields=files(id,name,mimeType)`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const data = await res.json();
+        list.innerHTML = "";
+        data.files.filter(f => f.mimeType.includes('image')).forEach(file => {
+            let d = document.createElement('div'); d.className = 'file-item'; d.innerText = file.name;
+            d.onclick = () => runLocalAnalysis(file.id, file.name);
+            list.appendChild(d);
+        });
+        document.getElementById('file-count').innerText = `พบภาพทั้งหมด ${data.files.length} รายการ`;
     }
 
-    async function fetchDriveFiles() {
-        const listEl = document.getElementById('file-list');
-        listEl.innerHTML = "กำลังโหลด...";
-        try {
-            const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}' in parents and trashed=false&fields=files(id,name,mimeType)`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            const data = await res.json();
-            listEl.innerHTML = "";
-            data.files.filter(f => f.mimeType.includes('image')).forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'file-item';
-                div.innerText = file.name;
-                div.onclick = () => loadPatientImage(file.id);
-                listEl.appendChild(div);
-            });
-        } catch (e) { alert("Error: " + e.message); }
-    }
-
-    async function loadPatientImage(fileId) {
-        document.getElementById('process-area').style.display = "block";
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    async function runLocalAnalysis(id, name) {
+        document.getElementById('main-view').style.display = "block";
+        document.getElementById('patient-name').innerText = `ไฟล์: ${name}`;
+        
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         const blob = await res.blob();
-        currentImage.src = URL.createObjectURL(blob);
-        currentImage.onload = () => {
-            document.getElementById('img-input').src = currentImage.src;
-            resetView();
+        currentImg.src = URL.createObjectURL(blob);
+        currentImg.onload = () => {
+            let src = cv.imread(currentImg);
+            cv.imshow('canvas-original', src);
+            
+            // --- เริ่มตรรกะประมวลผลภาพ (Non-AI) ---
+            let gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            
+            // 1. ตรวจหา Exudates (จุดขาว)
+            let exudates = new cv.Mat();
+            cv.threshold(gray, exudates, 180, 255, cv.THRESH_BINARY);
+            let contoursE = new cv.MatVector();
+            let hierE = new cv.Mat();
+            cv.findContours(exudates, contoursE, hierE, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            let eCount = contoursE.size();
+
+            // 2. ตรวจหา Hemorrhages (จุดดำใน Green Channel)
+            let planes = new cv.MatVector();
+            cv.split(src, planes);
+            let green = planes.get(1); // กฎ: จุดเลือดออกชัดสุดในช่องสีเขียว
+            let hm = new cv.Mat();
+            cv.adaptiveThreshold(green, hm, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+            let contoursH = new cv.MatVector();
+            let hierH = new cv.Mat();
+            cv.findContours(hm, contoursH, hierH, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            let hCount = Math.max(0, contoursH.size() - 50); // หักลบ Noise เบื้องต้น
+
+            // 3. สรุปผลความรุนแรง
+            updateGradeUI(hCount, eCount);
+            
+            cv.imshow('canvas-filtered', hm);
+            src.delete(); gray.delete(); exudates.delete(); hm.delete(); planes.delete(); green.delete();
         };
     }
 
-    function applyFilter(type) {
-        let src = cv.imread(currentImage);
-        let dst = new cv.Mat();
-        
-        if (type === 'redfree') {
-            let planes = new cv.MatVector();
-            cv.split(src, planes);
-            let green = planes.get(1); // ดึง Green Channel
-            let clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
-            clahe.apply(green, dst);
-            planes.delete(); green.delete();
-        } else if (type === 'exudate') {
-            let gray = new cv.Mat();
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            cv.adaptiveThreshold(gray, dst, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, -12);
-            gray.delete();
-        }
-        
-        cv.imshow('canvas-output', dst);
-        src.delete(); dst.delete();
-    }
+    function updateGradeUI(h, e) {
+        const badge = document.getElementById('grade-badge');
+        const plan = document.getElementById('plan-text');
+        document.getElementById('h-count').innerText = h;
+        document.getElementById('e-count').innerText = e;
 
-    function resetView() {
-        let src = cv.imread(currentImage);
-        cv.imshow('canvas-output', src);
-        src.delete();
+        if (h === 0 && e === 0) {
+            badge.innerText = "Normal (ปกติ)"; badge.style.background = "#16a34a";
+            plan.innerText = "นัดตรวจซ้ำปีหน้าตามปกติครับ";
+        } else if (h < 10 && e === 0) {
+            badge.innerText = "Mild NPDR (เริ่มต้น)"; badge.style.background = "#ca8a04";
+            plan.innerText = "ควบคุมระดับน้ำตาลและนัดตรวจซ้ำใน 6 เดือน";
+        } else {
+            badge.innerText = "Moderate / Risk detected (พบความเสี่ยง)"; badge.style.background = "#ea580c";
+            plan.innerText = "🚨 ควรส่งต่อพบจักษุแพทย์เพื่อตรวจละเอียดเพิ่มเติม";
+        }
     }
 
     function onOpenCvReady() { console.log("OpenCV Ready"); }
