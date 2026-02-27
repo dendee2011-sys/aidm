@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI ตรวจจอประสาทตา (รพ.ศรีสะเกษ)</title>
+    <title>AI ตรวจจอประสาทตาแบบละเอียด (รพ.ศรีสะเกษ)</title>
     <script async defer src="https://accounts.google.com/gsi/client" onload="onGsiLoad()"></script>
     
     <style>
@@ -15,6 +15,12 @@
             --card: #ffffff;
             --text: #334155;
             --border: #e2e8f0;
+            /* สีสำหรับสถานะ */
+            --status-normal: #10b981;
+            --status-mild: #f59e0b;
+            --status-mod: #f97316;
+            --status-severe: #ef4444;
+            --status-pdr: #b91c1c;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -28,7 +34,7 @@
         }
         .container {
             width: 100%;
-            max-width: 1000px;
+            max-width: 1100px;
             background: var(--card);
             padding: 30px;
             border-radius: 12px;
@@ -77,26 +83,6 @@
             align-items: center;
             gap: 15px;
         }
-        .btn-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-        }
-        .upload-btn {
-            background-color: var(--primary);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-block;
-            transition: 0.2s;
-            border: none;
-        }
-        .upload-btn:hover { background-color: var(--secondary); }
-        
         .folder-input-group {
             display: flex;
             width: 100%;
@@ -130,7 +116,7 @@
         .patient-record {
             border: 2px solid var(--border);
             border-radius: 10px;
-            padding: 20px;
+            padding: 25px;
             margin-top: 25px;
             background: #ffffff;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
@@ -141,34 +127,40 @@
             align-items: center;
             border-bottom: 2px solid #f1f5f9;
             padding-bottom: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
+        .patient-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
         .patient-img-preview {
-            max-width: 200px;
-            max-height: 200px;
+            max-width: 250px;
+            max-height: 250px;
             border-radius: 8px;
             border: 1px solid var(--border);
             display: block;
-            margin: 0 auto 15px auto;
+            margin: 0 auto 20px auto;
         }
         
-        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .eye-card { border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: #fafaf9; }
-        .severity-badge { padding: 4px 10px; border-radius: 20px; color: white; font-size: 12px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
-        .treatment-box { margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; }
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .eye-card { border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: #fafaf9; }
+        .eye-card h4 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; font-size: 17px; color: #475569; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .severity-badge { padding: 5px 12px; border-radius: 20px; color: white; font-size: 13px; font-weight: bold; }
+        
+        .detailed-report { margin-top: 15px; font-size: 14px; line-height: 1.6; }
+        .detailed-report strong { color: #1e293b; }
+        .detailed-report ul { margin: 8px 0; padding-left: 20px; }
+        
+        .csme-box { background-color: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: bold; font-size: 13px; text-align: center; }
+        .treatment-box { margin-top: 15px; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 14px; border: 1px solid #cbd5e1; }
 
         .loading-box { display: none; text-align: center; padding: 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; margin-top: 20px; color: #1e3a8a; font-weight: bold; }
 
-        @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 850px) { .results-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>🩺 AI วิเคราะห์จอประสาทตาเบาหวาน</h1>
-        <div class="subtitle">ระบบดึงภาพสแกนอัตโนมัติจาก Google Drive (รพ.ศรีสะเกษ)</div>
+        <h1>🩺 AI วิเคราะห์จอประสาทตาแบบละเอียด</h1>
+        <div class="subtitle">ระบบสแกนกลุ่มอัตโนมัติจาก Google Drive (รพ.ศรีสะเกษ)</div>
 
         <div class="api-setup">
             <strong>🔑 1. ใส่ API Key ของ Gemini:</strong>
@@ -184,7 +176,7 @@
         </div>
 
         <div class="upload-area">
-            <p style="margin-bottom: 0; color: #1a73e8; font-weight: bold;">📁 ดึงภาพทั้งหมดจากโฟลเดอร์หลัก</p>
+            <p style="margin-bottom: 0; color: #1a73e8; font-weight: bold;">📁 สแกนแบบกลุ่ม (ดึงภาพทั้งหมดจากโฟลเดอร์หลัก)</p>
             <div class="folder-input-group">
                 <input type="text" id="folder-id" value="1-WV_s3s7mLKDUfs7fl-UwH0H4TxxO1cx" placeholder="รหัสโฟลเดอร์ Google Drive">
                 <button class="drive-btn" onclick="authAndFetchFolder()">
@@ -192,7 +184,7 @@
                     เริ่มสแกนโฟลเดอร์
                 </button>
             </div>
-            <p style="font-size: 12px; color: #64748b;">(รหัสถูกตั้งค่าเป็นโฟลเดอร์รพ.ศรีสะเกษอัตโนมัติ)</p>
+            <p style="font-size: 12px; color: #64748b;">(รหัสถูกตั้งค่าเป็นโฟลเดอร์คัดกรองอัตโนมัติ)</p>
         </div>
 
         <div id="main-status" class="loading-box"></div>
@@ -220,12 +212,8 @@
         }
 
         function authAndFetchFolder() {
-            if (!document.getElementById('folder-id').value.trim()) {
-                alert('กรุณาระบุ Folder ID'); return;
-            }
-            if (!document.getElementById('api-key').value.trim() || !document.getElementById('model-select').value) {
-                alert('กรุณาโหลด AI Model ก่อนครับ'); return;
-            }
+            if (!document.getElementById('folder-id').value.trim()) { alert('กรุณาระบุ Folder ID'); return; }
+            if (!document.getElementById('api-key').value.trim() || !document.getElementById('model-select').value) { alert('กรุณาโหลด AI Model ก่อนครับ'); return; }
             if (!accessToken) tokenClient.requestAccessToken();
             else fetchFilesInFolder();
         }
@@ -237,6 +225,7 @@
             
             container.innerHTML = ""; 
             statusBox.style.display = 'block';
+            statusBox.style.backgroundColor = '#eff6ff'; statusBox.style.color = '#1e3a8a';
             statusBox.innerText = "กำลังเข้าถึงโฟลเดอร์และค้นหาภาพ... ⏳";
 
             try {
@@ -252,15 +241,16 @@
                     statusBox.innerText = "ไม่พบไฟล์ในโฟลเดอร์นี้ครับ"; return;
                 }
 
-                statusBox.innerText = `พบไฟล์ ${data.files.length} รายการ กำลังวิเคราะห์ผลทีละรายการ... 🤖`;
+                statusBox.innerText = `พบไฟล์ ${data.files.length} รายการ กำลังเริ่มตรวจแบบละเอียดทีละรายการ... 🤖🩺`;
                 
                 for (let i = 0; i < data.files.length; i++) {
                     await processDriveFile(data.files[i], i + 1, data.files.length);
                 }
                 
-                statusBox.innerText = "✅ วิเคราะห์ครบทุกรายการแล้ว";
-                statusBox.style.color = "#16a34a";
+                statusBox.innerText = "✅ วิเคราะห์แบบละเอียดครบทุกรายการแล้ว";
+                statusBox.style.backgroundColor = "#dcfce7"; statusBox.style.color = "#16a34a";
             } catch (error) {
+                statusBox.style.display = 'none';
                 document.getElementById('error-box').innerText = `❌ Error: ${error.message}`;
             }
         }
@@ -274,7 +264,7 @@
             recordDiv.innerHTML = `
                 <div class="patient-header">
                     <h3>📄 [${currentIndex}/${totalFiles}] : ${fileMeta.name}</h3>
-                    <span id="status-${fileId}" style="color: #2563eb; font-weight: bold;">กำลังวิเคราะห์... 🤖</span>
+                    <span id="status-${fileId}" style="color: #2563eb; font-weight: bold;">กำลังวิเคราะห์แบบละเอียด... 🤖</span>
                 </div>
                 <img id="img-${fileId}" class="patient-img-preview" style="display:none;">
                 <div id="results-${fileId}" class="results-grid" style="display:none;"></div>
@@ -298,47 +288,83 @@
                 await new Promise(resolve => reader.onloadend = resolve);
                 const base64File = reader.result.split(',')[1];
 
-                await runGeminiAnalysis(base64File, fileMeta.mimeType, fileId);
+                await runGeminiDetailedAnalysis(base64File, fileMeta.mimeType, fileId);
             } catch (error) {
-                document.getElementById(`status-${fileId}`).innerText = `❌ Error: ${error.message}`;
+                document.getElementById(`status-${fileId}`).innerText = `❌ ขัดข้อง: ${error.message}`;
+                document.getElementById(`status-${fileId}`).style.color = "red";
             }
         }
 
-        async function runGeminiAnalysis(base64File, mimeType, elementId) {
+        // ✅ ฟังก์ชันตรวจละเอียดระดับจักษุแพทย์
+        async function runGeminiDetailedAnalysis(base64File, mimeType, elementId) {
             const apiKey = document.getElementById('api-key').value.trim();
             const targetModel = document.getElementById('model-select').value;
 
-            const promptText = `วิเคราะห์ภาพจอประสาทตานี้ (Diabetic Retinopathy) ตอบเป็น JSON: {"left": {"grade": "สรุปผลตาซ้าย", "color": "#รหัสสี", "ma": "พบ/ไม่พบ", "hm": "พบ/ไม่พบ", "he": "พบ/ไม่พบ", "treatment": "แนะนำ"}, "right": {"grade": "สรุปผลตาขวา", "color": "#รหัสสี", "ma": "พบ/ไม่พบ", "hm": "พบ/ไม่พบ", "he": "พบ/ไม่พบ", "treatment": "แนะนำ"}}`;
+            // Prompt ตรวจละเอียด: จำแนกรอยโรค, ระบุตำแหน่ง, ประเมินความเสี่ยง Macular Edema
+            const promptText = `คุณคือจักษุแพทย์ผู้เชี่ยวชาญด้านจอประสาทตา (Retina Specialist) จงวิเคราะห์ภาพถ่ายจอประสาทตาเบาหวาน (Fundus Photography) นี้อย่างละเอียด:
+            1. จำแนกระดับ Diabetic Retinopathy (DR) ตามมาตรฐาน (Normal, Mild NPDR, Moderate NPDR, Severe NPDR, หรือ PDR)
+            2. ตรวจหาและระบุตำแหน่ง-จำนวนของรอยโรคอย่างละเอียด: Microaneurysms (MA), Hemorrhages (Dot/Blot/Flame-shaped), Hard Exudates (HE), Soft Exudates (Cotton Wool Spots), Neovascularization
+            3. ประเมินความเสี่ยง Clinically Significant Macular Edema (CSME) โดยดูการกระจายของ HE ใกล้บริเวณ Fovea (จุดภาพชัด)
+            4. สรุปคำแนะนำเชิงลึก (Management Plan) เช่น ระยะเวลานัดตรวจซ้ำ หรือ เกณฑ์การส่งต่อ (Refer) พบจักษุแพทย์ทันที
+
+            ตอบแยกตาซ้าย (OS) และตาขวา (OD) เป็น JSON เท่านั้น (ห้ามมีคำบรรยายอื่นนอก JSON):
+            {"left": {"grade": "ระดับ DR", "color": "รหัสสีสถานะ", "detailed_findings": "บรรยายรอยโรคที่พบและตำแหน่ง (ละเอียด)", "csme_risk": "ต่ำ/กลาง/สูง", "plan": "คำแนะนำ"}, "right": {"grade": "ระบุผล", "color": "รหัสสี", "detailed_findings": "รายละเอียด", "csme_risk": "ระบุ", "plan": "คำแนะนำ"}}`;
             
             const payload = { "contents": [{ "parts": [{ "text": promptText }, { "inline_data": { "mime_type": mimeType, "data": base64File } }] }], "generationConfig": { "response_mime_type": "application/json" } };
             
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent?key=${apiKey}`, { method: 'POST', body: JSON.stringify(payload) });
             const data = await response.json();
             
+            if (data.error) throw new Error(data.error.message);
+
             let resultText = data.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim();
             const aiData = JSON.parse(resultText);
             
             const resultsGrid = document.getElementById(`results-${elementId}`);
-            resultsGrid.innerHTML = generateEyeCardHTML('ตาซ้าย', aiData.left) + generateEyeCardHTML('ตาขวา', aiData.right);
+            resultsGrid.innerHTML = generateDetailedEyeCardHTML('ตาซ้าย (OS)', aiData.left) + generateDetailedEyeCardHTML('ตาขวา (OD)', aiData.right);
             resultsGrid.style.display = 'grid';
-            document.getElementById(`status-${elementId}`).innerText = "✅ เสร็จสิ้น";
+            document.getElementById(`status-${elementId}`).innerText = "✅ ตรวจเสร็จสิ้น";
+            document.getElementById(`status-${elementId}`).style.color = "#16a34a";
         }
 
-        function generateEyeCardHTML(title, data) {
-            return `<div class="eye-card">
-                <h4>👁️ ${title} <span class="severity-badge" style="background-color: ${data.color};">${data.grade}</span></h4>
-                <table>
-                    <tr><th>Microaneurysms</th><td>${data.ma}</td></tr>
-                    <tr><th>Hemorrhages</th><td>${data.hm}</td></tr>
-                    <tr><th>Hard Exudates</th><td>${data.he}</td></tr>
-                </table>
-                <div class="treatment-box" style="border: 1px solid ${data.color}; color: ${data.color};">${data.treatment}</div>
+        // ✅ ฟังก์ชันสร้าง UI รายงานผลแบบละเอียด
+        function generateDetailedEyeCardHTML(title, data) {
+            if (!data) return `<div>ไม่พบข้อมูล ${title}</div>`;
+            
+            // กำหนดสีพื้นหลังคำแนะนำตามสีสถานะ
+            let bgColor, textColor;
+            switch(data.color) {
+                case '#10b981': bgColor='#dcfce7'; textColor='#166534'; break; // Normal
+                case '#f59e0b': bgColor='#fef3c7'; textColor='#92400e'; break; // Mild
+                case '#ef4444': bgColor='#fee2e2'; textColor='#991b1b'; break; // Severe/PDR
+                default: bgColor='#fff7ed'; textColor='#9a3412'; break; // Moderate
+            }
+
+            return `
+            <div class="eye-card">
+                <h4>👁️ ${title} <span class="severity-badge" style="background-color: ${data.color || '#64748b'};">${data.grade || '-'}</span></h4>
+                
+                <div class="detailed-report">
+                    <strong>🔍 ผลการตรวจโดยละเอียด:</strong>
+                    <p style="margin-top:5px; white-space: pre-wrap;">${data.detailed_findings || 'ไม่พบรอยโรคผิดปกติ'}</p>
+                </div>
+
+                <div class="csme-box" style="background-color: ${data.csme_risk === 'สูง' ? '#fee2e2' : (data.csme_risk === 'กลาง' ? '#fff7ed' : '#f0f9ff')}; 
+                                         border-color: ${data.csme_risk === 'สูง' ? '#fca5a5' : (data.csme_risk === 'กลาง' ? '#ffedd5' : '#bae6fd')}; 
+                                         color: ${data.csme_risk === 'สูง' ? '#991b1b' : (data.csme_risk === 'กลาง' ? '#9a3412' : '#0369a1')};">
+                    🎯 ความเสี่ยง Macular Edema: ${data.csme_risk || 'ต่ำ'}
+                </div>
+
+                <div class="treatment-box" style="border: 1px solid ${data.color}; background-color: ${bgColor}; color: ${textColor};">
+                    📋 คำแนะนำ: ${data.plan || '-'}
+                </div>
             </div>`;
         }
 
         async function fetchModels() {
             const apiKey = document.getElementById('api-key').value.trim();
             if (!apiKey) return alert("ใส่ API Key ก่อนครับ");
+            document.getElementById('api-status').innerText = "กำลังเชื่อมต่อ... ⏳";
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 const data = await response.json();
@@ -346,13 +372,14 @@
                 const selectBox = document.getElementById('model-select');
                 selectBox.innerHTML = "";
                 validModels.forEach(m => {
-                    const opt = document.createElement("option"); opt.value = m.name; opt.text = m.name;
-                    if (m.name.includes("flash")) opt.selected = true;
+                    const opt = document.createElement("option"); opt.value = m.name; opt.text = m.displayName || m.name;
+                    if (m.name.includes("1.5-flash")) opt.selected = true;
                     selectBox.appendChild(opt);
                 });
                 document.getElementById('model-selector-container').style.display = "block";
-                document.getElementById('api-status').innerText = "✅ เชื่อมต่อ Gemini สำเร็จ";
-            } catch (e) { alert("API Key ไม่ถูกต้อง"); }
+                document.getElementById('api-status').innerText = "✅ เชื่อมต่อ Gemini สำเร็จ พร้อมตรวจแบบละเอียด!";
+                document.getElementById('api-status').style.color = "#16a34a";
+            } catch (e) { document.getElementById('api-status').innerText = "❌ API Key ไม่ถูกต้อง หรือเชื่อมต่อล้มเหลว"; document.getElementById('api-status').style.color = "red"; }
         }
     </script>
 </body>
