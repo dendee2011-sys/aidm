@@ -2,108 +2,145 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>ระบบคัดกรองรอยโรคด้วยภาพ (รพ.ศรีสะเกษ - Offline Mode)</title>
+    <title>ระบบคัดกรองรอยโรค (รพ.ศรีสะเกษ - Drive & Local Process)</title>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="onGsiLoad()"></script>
     <script async src="https://docs.opencv.org/4.5.4/opencv.js" type="text/javascript" onload="onOpenCvReady()"></script>
+    
     <style>
-        :root { --primary: #0d9488; --bg: #f8fafc; }
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg); padding: 20px; text-align: center; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .canvas-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
-        canvas { max-width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; background: #000; }
-        .btn-group { margin: 20px 0; display: flex; justify-content: center; gap: 10px; }
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-green { background: #059669; color: white; }
-        .btn-exudate { background: #d97706; color: white; }
-        .status { color: #64748b; font-size: 14px; margin-top: 10px; }
+        :root { --primary: #0d9488; --drive: #1a73e8; --bg: #f1f5f9; }
+        body { font-family: 'Sarabun', sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .controls { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .patient-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; padding: 10px; }
+        .file-item { padding: 8px; cursor: pointer; border-radius: 4px; background: white; border: 1px solid #e2e8f0; font-size: 13px; }
+        .file-item:hover { background: #f0fdfa; }
+        .canvas-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
+        canvas, img { max-width: 100%; border-radius: 8px; background: #000; border: 2px solid #cbd5e1; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-drive { background: var(--drive); }
+        .btn-green { background: #059669; }
+        .btn-warn { background: #d97706; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="color:var(--primary)">🏥 ระบบช่วยวินิจฉัยรอยโรค (Non-AI)</h1>
-    <p>หน่วยงานคัดกรอง <strong>รพ.ศรีสะเกษ</strong></p>
-    
-    <div id="cv-status" class="status">⏳ กำลังโหลดสมองกลสำหรับประมวลผลภาพ...</div>
+    <h1 style="text-align:center; color:var(--primary);">🩺 ระบบวิเคราะห์ภาพจาก Drive (Offline Processing)</h1>
+    <p style="text-align:center;">หน่วยคัดกรอง <strong>รพ.ศรีสะเกษ</strong></p>
 
-    <div style="margin: 20px 0; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 10px;">
-        <input type="file" id="file-input" accept="image/*" style="display: none;">
-        <button class="btn" style="background:#475569; color:white;" onclick="document.getElementById('file-input').click()">📁 เลือกรูปถ่ายจอประสาทตา</button>
-    </div>
-
-    <div class="btn-group">
-        <button class="btn btn-green" onclick="applyRedFree()">🟢 Red-Free Filter (เน้นเลือดออก)</button>
-        <button class="btn btn-exudate" onclick="applyExudateEnhance()">🟡 เน้นไขมันรั่ว (Hard Exudates)</button>
-        <button class="btn" style="background:#94a3b8; color:white;" onclick="resetImage()">🔄 รีเซ็ตภาพ</button>
-    </div>
-
-    <div class="canvas-container">
-        <div>
-            <p><strong>รูปต้นฉบับ</strong></p>
-            <canvas id="canvas-input"></canvas>
+    <div class="controls">
+        <div style="margin-bottom:15px; text-align:center;">
+            <strong>📁 โฟลเดอร์เป้าหมาย:</strong> 
+            <code id="folder-display">1-WV_s3s7mLKDUfs7fl-UwH0H4TxxO1cx</code>
         </div>
-        <div>
-            <p><strong>ผลการประมวลผล</strong></p>
-            <canvas id="canvas-output"></canvas>
+        <div class="btn-group">
+            <button class="btn btn-drive" onclick="authenticate()">🔄 เชื่อมต่อ Drive และดึงรายชื่อภาพ</button>
+        </div>
+        <div id="file-list" class="patient-list">
+            <div style="color:#64748b; text-align:center; width:100%;">กดปุ่มด้านบนเพื่อโหลดรายชื่อภาพ...</div>
+        </div>
+    </div>
+
+    <div id="process-area" style="display:none;">
+        <div class="btn-group">
+            <button class="btn btn-green" onclick="applyFilter('redfree')">🟢 Red-Free Filter (ดูเลือดออก)</button>
+            <button class="btn btn-warn" onclick="applyFilter('exudate')">🟡 เน้นไขมันรั่ว (Exudates)</button>
+            <button class="btn" style="background:#64748b" onclick="resetView()">🔄 ภาพจริง</button>
+        </div>
+
+        <div class="canvas-area">
+            <div>
+                <p style="text-align:center;"><strong>ภาพต้นฉบับ</strong></p>
+                <img id="img-input" style="max-width:450px;">
+            </div>
+            <div>
+                <p style="text-align:center;"><strong>ผลการประมวลผล (Local)</strong></p>
+                <canvas id="canvas-output"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    let imgElement = new Image();
-    let fileInput = document.getElementById('file-input');
+    const CLIENT_ID = '446093303322-5sksg8sflshmq9df4d9f72nnt3v9gcv6.apps.googleusercontent.com';
+    const FOLDER_ID = '1-WV_s3s7mLKDUfs7fl-UwH0H4TxxO1cx';
+    let tokenClient, accessToken = null;
+    let currentImage = new Image();
 
-    fileInput.onchange = (e) => {
-        imgElement.src = URL.createObjectURL(e.target.files[0]);
-    };
-
-    imgElement.onload = () => {
-        let src = cv.imread(imgElement);
-        cv.imshow('canvas-input', src);
-        cv.imshow('canvas-output', src);
-        src.delete();
-    };
-
-    function onOpenCvReady() {
-        document.getElementById('cv-status').innerText = "✅ ระบบพร้อมทำงาน (ประมวลผลในเครื่อง 100%)";
-        document.getElementById('cv-status').style.color = "#059669";
+    function onGsiLoad() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID, scope: 'https://www.googleapis.com/auth/drive.readonly',
+            callback: (res) => { accessToken = res.access_token; fetchDriveFiles(); }
+        });
     }
 
-    // 🟢 ฟังก์ชัน Red-Free Filter (เน้น Hemorrhages/Microaneurysms)
-    function applyRedFree() {
-        let src = cv.imread(imgElement);
-        let planes = new cv.MatVector();
-        cv.split(src, planes); // แยกสี RGB
-        
-        let green = planes.get(1); // ดึงช่องสีเขียว
+    function authenticate() {
+        if (!accessToken) tokenClient.requestAccessToken();
+        else fetchDriveFiles();
+    }
+
+    async function fetchDriveFiles() {
+        const listEl = document.getElementById('file-list');
+        listEl.innerHTML = "กำลังโหลด...";
+        try {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}' in parents and trashed=false&fields=files(id,name,mimeType)`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const data = await res.json();
+            listEl.innerHTML = "";
+            data.files.filter(f => f.mimeType.includes('image')).forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerText = file.name;
+                div.onclick = () => loadPatientImage(file.id);
+                listEl.appendChild(div);
+            });
+        } catch (e) { alert("Error: " + e.message); }
+    }
+
+    async function loadPatientImage(fileId) {
+        document.getElementById('process-area').style.display = "block";
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const blob = await res.blob();
+        currentImage.src = URL.createObjectURL(blob);
+        currentImage.onload = () => {
+            document.getElementById('img-input').src = currentImage.src;
+            resetView();
+        };
+    }
+
+    function applyFilter(type) {
+        let src = cv.imread(currentImage);
         let dst = new cv.Mat();
         
-        // เพิ่ม Contrast ด้วย CLAHE
-        let clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
-        clahe.apply(green, dst);
+        if (type === 'redfree') {
+            let planes = new cv.MatVector();
+            cv.split(src, planes);
+            let green = planes.get(1); // ดึง Green Channel
+            let clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
+            clahe.apply(green, dst);
+            planes.delete(); green.delete();
+        } else if (type === 'exudate') {
+            let gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            cv.adaptiveThreshold(gray, dst, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, -12);
+            gray.delete();
+        }
         
         cv.imshow('canvas-output', dst);
-        src.delete(); planes.delete(); green.delete(); dst.delete();
+        src.delete(); dst.delete();
     }
 
-    // 🟡 ฟังก์ชันเน้นไขมันรั่ว (Hard Exudates)
-    function applyExudateEnhance() {
-        let src = cv.imread(imgElement);
-        let gray = new cv.Mat();
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        
-        // ใช้ Threshold แบบปรับตัวเพื่อหาจุดที่สว่างผิดปกติ
-        let dst = new cv.Mat();
-        cv.adaptiveThreshold(gray, dst, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, -10);
-        
-        cv.imshow('canvas-output', dst);
-        src.delete(); gray.delete(); dst.delete();
-    }
-
-    function resetImage() {
-        let src = cv.imread(imgElement);
+    function resetView() {
+        let src = cv.imread(currentImage);
         cv.imshow('canvas-output', src);
         src.delete();
     }
+
+    function onOpenCvReady() { console.log("OpenCV Ready"); }
 </script>
 </body>
 </html>
